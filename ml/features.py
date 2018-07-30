@@ -6,8 +6,12 @@
     Utility functions for common feature generation tasks, like
     categorical features and interactivity features.
 """
-import pandas as pd
+
+from itertools import combinations
 from copy import deepcopy
+
+from sklearn.preprocessing import PolynomialFeatures
+import pandas as pd
 
 
 def encode_categories(data, keys=None, categories=None, prefix='tkn', copy=True):
@@ -82,8 +86,7 @@ def unstack_categories(data, keys=None, categories=None, features=None, sep='_')
 
     # Build a result set by unstacking the data.
     results = data.set_index(keys + categories, verify_integrity=True)[features]
-    for category in categories:
-        results = results.unstack(category)
+    results = results.unstack(categories, fill_value=0.0)
     results.reset_index(inplace=True)
 
     # Clean up the column names by removing the axis=1 MultiIndex.
@@ -92,8 +95,39 @@ def unstack_categories(data, keys=None, categories=None, features=None, sep='_')
         out = out[:-1] if out[-1] == sep else out
         return out
 
-    labels = list(map(lambda tup: to_safe_str(tup, sep), list(results)))
+    labels = list(map(lambda tup: to_safe_str(tup, sep), list(results.columns)))
     results.set_axis(labels=labels, axis='columns', inplace=True)
 
     return results
 
+
+def add_interactions(data, degree=2):
+    """add_interactions was in a presentation given by April Chen here:
+
+        https://www.youtube.com/watch?v=V0u6bxQOUJ8
+
+    To add feature interactions to your DataFrame, get combinations of
+    column names and fit_transform PolynomialFeatures transformer on the
+    data frame.
+
+    Layer back in the column names and do some clean-up.
+
+    In her implementation, she used feature pairs, but to make this a little
+    more dynamic, I added the degree parameter to manage the number of interacting
+    features.
+    """
+    # Get feature names
+    combos = list(combinations(list(data.columns), degree))
+    colnames = list(data.columns) + ['_'.join(x) for x in combos]
+
+    # Find interactions
+    poly = PolynomialFeatures(degree=degree, interaction_only=True, include_bias=False)
+    data = poly.fit_transform(data)
+    data = pd.DataFrame(data)
+    data.set_axis(colnames, axis=1)
+
+    # Remove interaction terms with all 0 values
+    noints = [i for i, x in enumerate(list((data == 0).all())) if x]
+    data = data.drop(noints, axis=1)
+
+    return data
