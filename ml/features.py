@@ -183,4 +183,4 @@ def get_sizes_by_categories(data, categories):
 
     # Show sizes.
     for combo in combos:
-        yield data.grouby(combo).size()
+        yield data.groupby(combo).size()
