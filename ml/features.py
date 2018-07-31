@@ -14,6 +14,9 @@ from sklearn.preprocessing import PolynomialFeatures
 import pandas as pd
 
 
+"""
+Categroical Features
+"""
 def encode_categories(data, keys=None, categories=None, prefix='tkn', copy=True):
     """Personally, I don't like the sklearn implementation of a OneHotEncoder
     since it's finnicky and returns a SparseDataFrame. In a Pipeline, I'm sure
@@ -131,3 +134,40 @@ def add_interactions(data, degree=2):
     data = data.drop(noints, axis=1)
 
     return data
+
+
+
+"""
+Feature Analysis
+"""
+def count_activations(data, features=None, axis=0):
+    """count_activations tests for how sparsely populated the features of a
+    DataFrame are. For example, a row full of zero-valued features might
+    not be a useful record for making predictions. Grouping activations
+    might also lend insight into the relationship between categorical
+    features.
+    """
+    if not features: features = list(data.columns)
+
+    # Get the featured data, transpose if necessary.
+    activations = data[features]
+    if axis: activations = activations.T
+
+    # Sum the True features across the rows.
+    to_activation = lambda df: df.fillna(0).astype(bool).sum(axis=0)
+    activations = to_activation(activations)
+    return activations
+
+
+def get_sizes_by_categories(data, categories):
+    """get_sizes_by_categories takes some data and some categories to analyze
+    their relative sizes.
+    """
+    # Build the combinations of categories to analyze
+    combos = []
+    for n in range(len(categories)):
+        combos += list(combinations(categories, n + 1))
+
+    # Show sizes.
+    for combo in combos:
+        yield data.grouby(combo).size()
