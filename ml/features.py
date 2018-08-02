@@ -140,7 +140,7 @@ def add_interactions(data, degree=2):
     poly = PolynomialFeatures(degree=degree, interaction_only=True, include_bias=False)
     data = poly.fit_transform(data)
     data = pd.DataFrame(data)
-    data.set_axis(colnames, axis=1)
+    data.columns = colnames
 
     # Remove interaction terms with all 0 values
     noints = [i for i, x in enumerate(list((data == 0).all())) if x]
@@ -167,7 +167,7 @@ def count_activations(data, features=None, axis=0):
     if axis: activations = activations.T
 
     # Sum the True features across the rows.
-    to_activation = lambda df: df.fillna(0).astype(bool).sum(axis=0)
+    to_activation = lambda df: df.fillna(0).astype(bool).sum(axis=1)
     activations = to_activation(activations)
     return activations
 
